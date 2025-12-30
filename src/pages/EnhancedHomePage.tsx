@@ -86,45 +86,21 @@ const EnhancedHomePage: React.FC = () => {
   })
 
   return (
-    <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-background to-secondary/10 py-20">
-        <div className="container relative mx-auto px-4 text-center">
-          <Badge className="mb-4 bg-gradient-to-r from-primary to-purple-600">
-            <Sparkles className="mr-2 h-4 w-4" />
-            Welcome to BlogSphere
-          </Badge>
-          
-          <h1 className="mb-6 text-5xl md:text-7xl font-bold tracking-tight">
-            <span className="bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
-              Discover Amazing
-            </span>
-            <br />
-            <span className="text-foreground">Tech Stories & Insights</span>
+      <div className="min-h-screen bg-background">
+      {/* Dynamic Hero Section */}
+      <section className="relative py-24 overflow-hidden bg-gradient-to-tr from-primary/20 via-background to-secondary/10">
+        <div className="container mx-auto px-4 text-center">
+          <Badge className="mb-6 py-1 px-4 text-sm animate-bounce"><Sparkles className="mr-2 h-4 w-4"/> New: AI-Powered Writing</Badge>
+          <h1 className="text-6xl md:text-8xl font-black tracking-tighter mb-8 leading-none">
+            WRITE <span className="text-primary italic underline decoration-wavy">SMARTER.</span><br/>
+            READ BETTER.
           </h1>
-          
-          <p className="mx-auto mb-8 max-w-2xl text-xl text-muted-foreground">
-            Join our community of developers sharing knowledge, insights, and stories 
-            about modern web technologies and beyond.
+          <p className="max-w-2xl mx-auto text-xl text-muted-foreground mb-10">
+            The next generation blog platform where human creativity meets artificial intelligence.
           </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Button 
-              size="lg" 
-              className="gap-2 bg-gradient-to-r from-primary to-purple-600 hover:shadow-xl"
-              onClick={() => navigate('/create-post')}
-            >
-              <Rocket className="h-5 w-5" />
-              Start Writing
-            </Button>
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className="gap-2 border-2"
-              onClick={() => navigate('/trending')}
-            >
-              <BookOpen className="h-5 w-5" />
-              Explore Articles
+          <div className="flex flex-wrap gap-4 justify-center">
+            <Button size="lg" className="h-14 px-8 rounded-full shadow-lg hover:shadow-primary/20 transition-all" onClick={() => navigate('/create-post')}>
+              <Rocket className="mr-2 h-5 w-5"/> Start Writing with AI
             </Button>
           </div>
         </div>
@@ -167,92 +143,7 @@ const EnhancedHomePage: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-      </section>
-
-      {/* Featured Posts */}
-      {featuredPosts.length > 0 && (
-        <section className="container mx-auto px-4 py-12">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-3xl font-bold mb-2 flex items-center gap-2">
-                <Star className="h-7 w-7 text-yellow-500 fill-yellow-500" />
-                Featured Stories
-              </h2>
-              <p className="text-muted-foreground">Handpicked articles worth reading</p>
-            </div>
-            <Button variant="ghost" className="gap-2">
-              View All
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {featuredPosts.map((post) => {
-              const safePost = getPostData(post)
-              return (
-                <Card 
-                  key={safePost.id} 
-                  className="group hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border-2"
-                >
-                  <CardHeader className="p-0">
-                    <div className="relative h-48 overflow-hidden rounded-t-lg">
-                      <img
-                        src={safePost.featuredImage}
-                        alt={safePost.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                        onError={(e) => {
-                          e.currentTarget.src = 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&q=80&auto=format&fit=crop'
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                      <Badge className="absolute top-4 left-4 bg-primary/90">
-                        Featured
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Avatar className="h-6 w-6">
-                        <AvatarImage src={safePost.author.avatar} />
-                        <AvatarFallback>
-                          <User className="h-3 w-3" />
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm font-medium">{safePost.author.name}</span>
-                      <span className="text-xs text-muted-foreground">•</span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(safePost.publishedAt), { addSuffix: true })}
-                      </span>
-                    </div>
-                    <h3 className="text-xl font-bold mb-2 line-clamp-2 group-hover:text-primary transition-colors">
-                      {safePost.title}
-                    </h3>
-                    <p className="text-muted-foreground line-clamp-3 mb-4">
-                      {safePost.excerpt}
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <Badge variant="outline">{safePost.category}</Badge>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <TrendingUp className="h-4 w-4" />
-                          {safePost.views.toLocaleString()} views
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="p-6 pt-0">
-                    <Button className="w-full" onClick={() => navigate(`/blog/${safePost.id}`)}>
-                      Read Story
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </CardFooter>
-                </Card>
-              )
-            })}
-          </div>
-        </section>
-      )}
-
+      </section>    
       {/* Main Content */}
       <section className="container mx-auto px-4 py-12">
         <Tabs defaultValue="recent" className="space-y-8">
@@ -383,40 +274,6 @@ const EnhancedHomePage: React.FC = () => {
             </div>
           </TabsContent>
         </Tabs>
-      </section>
-
-      {/* Stats Section */}
-      <section className="container mx-auto px-4 py-12">
-        <Card className="bg-gradient-to-r from-primary/10 to-purple-500/10 border-0">
-          <CardContent className="p-12">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-              <div className="space-y-2">
-                <div className="text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-                  {posts.filter(p => p).length}+
-                </div>
-                <p className="text-muted-foreground">Articles Published</p>
-              </div>
-              <div className="space-y-2">
-                <div className="text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-                  {posts.reduce((acc, post) => acc + (post?.views || 0), 0).toLocaleString()}+
-                </div>
-                <p className="text-muted-foreground">Total Views</p>
-              </div>
-              <div className="space-y-2">
-                <div className="text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-                  {posts.reduce((acc, post) => acc + (post?.likes || 0), 0).toLocaleString()}+
-                </div>
-                <p className="text-muted-foreground">Likes Received</p>
-              </div>
-              <div className="space-y-2">
-                <div className="text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-                  50+
-                </div>
-                <p className="text-muted-foreground">Active Writers</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </section>
     </div>
   )
