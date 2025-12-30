@@ -3,6 +3,8 @@ import { apiClient } from './client'
 import type { BlogPost, Comment, Author } from './types'
 
 export const hybridService = {
+  // ... existing code ...
+
   async getHybridPosts(): Promise<BlogPost[]> {
     try {
       // Get posts from both sources
@@ -65,6 +67,13 @@ export const hybridService = {
       return []
     }
   },
+
+  // --- NEW METHOD ADDED HERE ---
+  async getPost(id: string): Promise<BlogPost | undefined> {
+    const posts = await this.getHybridPosts();
+    return posts.find(p => p.id === id);
+  },
+  // -----------------------------
 
   async getHybridComments(postId: string): Promise<Comment[]> {
     try {

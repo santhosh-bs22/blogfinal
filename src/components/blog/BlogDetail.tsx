@@ -1,177 +1,140 @@
-import React from 'react'
+import React, { useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, CalendarDays, Clock, Tag } from 'lucide-react'
-import LoadingSpinner from '../ui/LoadingSpinner'
-import AuthorInfo from './AuthorInfo'
-import LikeBookmark from './LikeBookmark'
-import CommentsSection from './CommentsSection'
+import { motion, useScroll, useTransform } from 'framer-motion'
+import { Calendar, Clock, ArrowLeft, Share2, Heart } from 'lucide-react'
+import { Button } from '../ui/Button'
 import { Badge } from '../ui/Badge'
-import { useBlogPost } from '../../hooks/useBlogPosts'
-import { formatDate } from '../../utils/formatDate'
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/Avatar'
+import CommentsSection from './CommentsSection'
+import { useQuery } from '@tanstack/react-query'
+import { hybridService } from '../../api/hybridService'
 
 const BlogDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>()
-  const { data: post, isLoading, error } = useBlogPost(id || '')
+  const ref = useRef(null)
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-20 flex justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    )
-  }
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start start", "end start"]
+  })
+  const y = useTransform(scrollYProgress, [0, 1], ["0%", "50%"])
+  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0])
 
-  if (error || !post) {
-    return (
-      <div className="container mx-auto px-4 py-20 text-center">
-        <h1 className="text-2xl font-bold mb-4">Post not found</h1>
-        <p className="text-muted-foreground mb-6">
-          The blog post you're looking for doesn't exist or may have been removed.
-        </p>
-        <Link 
-          to="/" 
-          className="inline-flex items-center gap-2 text-primary hover:underline"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to all posts
-        </Link>
-      </div>
-    )
-  }
+  const { data: post, isLoading } = useQuery({
+    queryKey: ['post', id],
+    // This now works because we added getPost to hybridService
+    queryFn: () => hybridService.getPost(id || ''),
+    enabled: !!id
+  })
+
+  if (isLoading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+    </div>
+  )
+
+  if (!post) return <div className="container py-20 text-center">Post not found</div>
 
   return (
-    <article className="min-h-screen bg-background">
-      {/* Hero Section */}
-      <div className="relative bg-gradient-to-r from-primary/10 to-secondary/10">
-        <div className="container mx-auto px-4 py-16">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary mb-8 transition-colors"
+    <div className="min-h-screen bg-background pb-20">
+      {/* Parallax Hero Section */}
+      <div className="relative h-[60vh] overflow-hidden flex items-center justify-center" ref={ref}>
+        <motion.div 
+          style={{ y, opacity }} 
+          className="absolute inset-0 z-0"
+        >
+          <img 
+            src={post.featuredImage || 'https://images.unsplash.com/photo-1499750310159-a5169ca92f5d'} 
+            alt={post.title} 
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
+        </motion.div>
+
+        <div className="container relative z-10 px-4 pt-20">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="max-w-3xl mx-auto text-center text-white"
           >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back to all posts</span>
-          </Link>
-
-          <div className="max-w-3xl mx-auto">
-            <div className="flex items-center gap-3 mb-6">
-              <Badge className="bg-primary/20 text-primary hover:bg-primary/30">
-                {post.category}
-              </Badge>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <CalendarDays className="h-4 w-4" />
-                  <span>{formatDate(post.publishedAt)}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Clock className="h-4 w-4" />
-                  <span>{post.readTime} min read</span>
-                </div>
-              </div>
-            </div>
-
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
+            <Link to="/">
+              <Button variant="ghost" className="text-white/80 hover:text-white mb-6 hover:bg-white/10">
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back to Blog
+              </Button>
+            </Link>
+            
+            <Badge className="mb-4 bg-primary/80 hover:bg-primary text-white border-none">
+              {post.category}
+            </Badge>
+            
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight tracking-tight">
               {post.title}
             </h1>
-
-            <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
-              {post.excerpt}
-            </p>
-          </div>
+            
+            <div className="flex flex-wrap items-center justify-center gap-6 text-white/80">
+              <div className="flex items-center gap-2">
+                <Avatar className="h-8 w-8 border-2 border-white/20">
+                  <AvatarImage src={post.author?.avatar} />
+                  <AvatarFallback>{post.author?.name?.[0]}</AvatarFallback>
+                </Avatar>
+                <span>{post.author?.name}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                <span>{new Date(post.publishedAt).toLocaleDateString()}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                <span>{post.readTime} min read</span>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto">
-          {/* Featured Image */}
-          {post.featuredImage && (
-            <div className="mb-12 rounded-2xl overflow-hidden shadow-xl">
-              <img
-                src={post.featuredImage}
-                alt={post.title}
-                className="w-full h-auto max-h-[500px] object-cover"
-                onError={(e) => {
-                  e.currentTarget.src = 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1200&q=80'
-                }}
-              />
+      {/* Content Container */}
+      <div className="container px-4 -mt-20 relative z-20">
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+          className="max-w-4xl mx-auto bg-card rounded-xl shadow-2xl border p-8 md:p-12"
+        >
+          <div className="flex justify-between items-center mb-8 border-b pb-6">
+            <div className="flex gap-2">
+               {post.tags.map((tag: string) => (
+                 <Badge key={tag} variant="secondary">#{tag}</Badge>
+               ))}
             </div>
-          )}
-
-          {/* Content */}
-          <div className="prose prose-lg dark:prose-invert max-w-none mb-12">
-            <div className="whitespace-pre-line leading-relaxed text-lg">
-              {post.content.split('\n').map((paragraph: string, index: number) => (
-                <p key={index} className="mb-6">
-                  {paragraph}
-                </p>
-              ))}
+            <div className="flex gap-2">
+              <Button size="icon" variant="outline" className="rounded-full hover:text-red-500 hover:border-red-200">
+                <Heart className="h-5 w-5" />
+              </Button>
+              <Button size="icon" variant="outline" className="rounded-full hover:text-blue-500 hover:border-blue-200">
+                <Share2 className="h-5 w-5" />
+              </Button>
             </div>
           </div>
 
-          {/* Tags */}
-          {post.tags && post.tags.length > 0 && (
-            <div className="mb-12 p-6 bg-muted/50 rounded-lg">
-              <div className="flex items-center gap-2 mb-4">
-                <Tag className="h-5 w-5 text-muted-foreground" />
-                <h3 className="font-semibold">Tags</h3>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {post.tags.map((tag: string) => (
-                  <Badge 
-                    key={tag} 
-                    variant="secondary"
-                    className="px-3 py-1 text-sm"
-                  >
-                    #{tag}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Author Info */}
-          <div className="mb-12">
-            <AuthorInfo
-              author={post.author}
-              publishedAt={post.publishedAt}
-              readTime={post.readTime}
-            />
-          </div>
-
-          {/* Like and Bookmark */}
-          <div className="mb-12 p-6 border rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold mb-2">Enjoyed this article?</h3>
-                <p className="text-muted-foreground">
-                  Show your appreciation by liking or bookmarking it!
-                </p>
-              </div>
-              <LikeBookmark
-                initialLikes={post.likes}
-                initialBookmarks={post.bookmarks}
-              />
-            </div>
-          </div>
-
-          {/* Comments Section */}
-          <div className="mb-12">
-            <CommentsSection postId={post.id} />
-          </div>
-
-          {/* Navigation */}
-          <div className="border-t pt-8">
-            <Link
-              to="/"
-              className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
+          <div className="prose prose-lg dark:prose-invert max-w-none">
+            <motion.div
+               initial={{ opacity: 0 }}
+               whileInView={{ opacity: 1 }}
+               viewport={{ once: true, margin: "-100px" }}
+               transition={{ duration: 0.5 }}
             >
-              <ArrowLeft className="h-4 w-4" />
-              <span>View all articles</span>
-            </Link>
+               {/* Simulating markdown content rendering */}
+               <div dangerouslySetInnerHTML={{ __html: post.content }} /> 
+            </motion.div>
           </div>
+        </motion.div>
+
+        <div className="max-w-4xl mx-auto mt-12">
+          <CommentsSection postId={id || ''} />
         </div>
       </div>
-    </article>
+    </div>
   )
 }
 
