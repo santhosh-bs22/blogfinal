@@ -19,15 +19,30 @@ interface CreatePostData {
   status: 'draft' | 'published'
 }
 
+const LOCAL_STORAGE_KEY = 'blog-custom-posts';
+
 export const postsApi = {
-  async getUserPosts(userId: string): Promise<BlogPost[]> {
+  // New helper to get all posts (mock + local)
+  async getAllPosts(): Promise<BlogPost[]> {
     try {
-      const posts = await apiClient.get<BlogPost[]>('posts.json')
-      return posts.filter(post => post.authorId === userId)
+      // 1. Get default posts from public/mock-api/posts.json
+      const defaultPosts = await apiClient.get<BlogPost[]>('posts.json')
+      
+      // 2. Get custom posts from localStorage
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY)
+      const customPosts: BlogPost[] = saved ? JSON.parse(saved) : []
+      
+      // Combine them, putting newest custom posts first
+      return [...customPosts, ...defaultPosts]
     } catch (error) {
-      console.error('Error fetching user posts:', error)
+      console.error('Error fetching posts:', error)
       return []
     }
+  },
+
+  async getUserPosts(userId: string): Promise<BlogPost[]> {
+    const allPosts = await this.getAllPosts()
+    return allPosts.filter(post => post.authorId === userId)
   },
 
   async createPost(postData: CreatePostData): Promise<BlogPost> {
@@ -45,40 +60,41 @@ export const postsApi = {
       isFeatured: false,
     }
 
-    // In a real app, you would save this to your database
-    console.log('Creating post:', newPost)
+    // Save to localStorage so it persists
+    const saved = localStorage.getItem(LOCAL_STORAGE_KEY)
+    const customPosts = saved ? JSON.parse(saved) : []
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify([newPost, ...customPosts]))
     
     return newPost
   },
 
   async updatePost(id: string, postData: Partial<BlogPost>): Promise<BlogPost> {
-    try {
-      const posts = await apiClient.get<BlogPost[]>('posts.json')
-      const postIndex = posts.findIndex(p => p.id === id)
-      
-      if (postIndex === -1) {
-        throw new Error('Post not found')
-      }
-
-      const updatedPost: BlogPost = {
-        ...posts[postIndex],
-        ...postData,
-        updatedAt: new Date().toISOString(),
-      }
-
-      // In a real app, you would save this to your database
-      console.log('Updating post:', updatedPost)
-      
-      return updatedPost
-    } catch (error) {
-      console.error('Error updating post:', error)
-      throw error
+    const saved = localStorage.getItem(LOCAL_STORAGE_KEY)
+    let customPosts: BlogPost[] = saved ? JSON.parse(saved) : []
+    const postIndex = customPosts.findIndex(p => p.id === id)
+    
+    if (postIndex === -1) {
+      throw new Error('Post not found or is a read-only default post')
     }
+
+    const updatedPost: BlogPost = {
+      ...customPosts[postIndex],
+      ...postData,
+      updatedAt: new Date().toISOString(),
+    }
+
+    customPosts[postIndex] = updatedPost
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(customPosts))
+    
+    return updatedPost
   },
 
   async deletePost(id: string): Promise<void> {
-    // Simulate deletion
-    console.log('Deleting post:', id)
-    return Promise.resolve()
+    const saved = localStorage.getItem(LOCAL_STORAGE_KEY)
+    if (saved) {
+      const customPosts: BlogPost[] = JSON.parse(saved)
+      const filtered = customPosts.filter(p => p.id !== id)
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(filtered))
+    }
   },
 }

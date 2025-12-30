@@ -4,22 +4,14 @@ import { useNavigate } from 'react-router-dom'
 import { postsApi } from '../api/posts'
 import { useAuth } from '../context/AuthContext'
 import { toast } from 'sonner'
-
-interface PostFormData {
-  title: string
-  content: string
-  excerpt: string
-  tags: string[]
-  category: string
-  featuredImage?: string
-  status: 'draft' | 'published'
-}
+import { useQueryClient } from '@tanstack/react-query' // Add this import
 
 const CreatePostPage: React.FC = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const queryClient = useQueryClient() // Initialize query client
 
-  const handleSubmit = async (data: PostFormData) => {
+  const handleSubmit = async (data: any) => {
     if (!user) return
 
     try {
@@ -37,13 +29,17 @@ const CreatePostPage: React.FC = () => {
 
       const newPost = await postsApi.createPost(postData)
       
+      // Invalidate the cache so the list updates immediately
+      await queryClient.invalidateQueries({ queryKey: ['blogPosts'] })
+      
       toast.success(
         data.status === 'published' 
           ? 'Post published successfully!' 
           : 'Post saved as draft'
       )
       
-      navigate(`/blog/${newPost.id}`)
+      // Navigate to the blog list page to see the new post
+      navigate('/blog') 
     } catch (error) {
       toast.error('Failed to save post')
       console.error(error)

@@ -1,14 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchBlogPosts, fetchBlogPost } from '../api/endpoints'
+import { fetchBlogPost } from '../api/endpoints'
+import { postsApi } from '../api/posts' // Import postsApi
 import { useBlog } from '../context/BlogContext'
 import type { BlogPost } from '../api/types'
 
 export const useBlogPosts = (category?: string, search?: string) => {
-  const { addToRecentlyViewed } = useBlog()
-  
   return useQuery({
     queryKey: ['blogPosts', category, search],
-    queryFn: () => fetchBlogPosts(),
+    queryFn: () => postsApi.getAllPosts(), // Use the new persistence-aware method
     select: (data) => {
       let filtered = data
       
@@ -38,6 +37,16 @@ export const useBlogPost = (id: string) => {
   return useQuery({
     queryKey: ['blogPost', id],
     queryFn: async () => {
+      // Check local storage first for individual post view
+      const saved = localStorage.getItem('blog-custom-posts')
+      const customPosts: BlogPost[] = saved ? JSON.parse(saved) : []
+      const localPost = customPosts.find(p => p.id === id)
+      
+      if (localPost) {
+        addToRecentlyViewed(id)
+        return localPost
+      }
+
       const post = await fetchBlogPost(id)
       if (post) {
         addToRecentlyViewed(id)
