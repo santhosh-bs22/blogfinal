@@ -7,7 +7,6 @@ export const hybridService = {
 
   async getHybridPosts(): Promise<BlogPost[]> {
     try {
-      // Get posts from both sources
       const [localPosts, jsonPosts] = await Promise.allSettled([
         apiClient.get<BlogPost[]>('posts.json'),
         jsonPlaceholderApi.getPosts(),
@@ -15,8 +14,7 @@ export const hybridService = {
 
       const posts: BlogPost[] = []
 
-      // 1. FETCH FROM LOCAL STORAGE (New Code)
-      // This ensures posts you created are displayed
+      // 1. FETCH FROM LOCAL STORAGE
       const savedPosts = JSON.parse(localStorage.getItem('user-posts') || '[]')
       posts.push(...savedPosts)
 
@@ -63,7 +61,6 @@ export const hybridService = {
         posts.push(...convertedPosts)
       }
 
-      // Sort by date (Newest first)
       return posts.sort((a, b) => 
         new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
       )
@@ -88,13 +85,10 @@ export const hybridService = {
       ])
 
       const comments: Comment[] = []
-
-      // Fetch from Local Storage
       const storageComments = JSON.parse(localStorage.getItem('user-comments') || '[]') as Comment[]
       const userComments = storageComments.filter(c => c.postId === postId)
       comments.push(...userComments)
 
-      // Add local comments
       if (localComments.status === 'fulfilled') {
         const filteredLocal = localComments.value.filter(c => 
           c.postId === postId || c.postId === postId.replace('json-', '')
@@ -102,7 +96,6 @@ export const hybridService = {
         comments.push(...filteredLocal)
       }
 
-      // Add JSONPlaceholder comments
       if (jsonComments.status === 'fulfilled') {
         const convertedComments = jsonComments.value.slice(0, 5).map(jsonComment => ({
           id: `json-comment-${jsonComment.id}`,
@@ -114,7 +107,6 @@ export const hybridService = {
           likes: Math.floor(Math.random() * 50),
           isVerified: Math.random() > 0.5,
         } satisfies Comment))
-
         comments.push(...convertedComments)
       }
 
@@ -142,7 +134,6 @@ export const hybridService = {
     return newComment
   },
 
-  // This ensures the post is saved to localStorage
   async createHybridPost(post: Omit<BlogPost, 'id'>): Promise<BlogPost> {
     const newPost: BlogPost = {
       ...post,
@@ -159,6 +150,39 @@ export const hybridService = {
     localStorage.setItem('user-posts', JSON.stringify(savedPosts))
 
     return newPost
+  },
+
+  async updateHybridPost(id: string, updates: Partial<BlogPost>): Promise<BlogPost> {
+    const savedPosts = JSON.parse(localStorage.getItem('user-posts') || '[]')
+    const index = savedPosts.findIndex((p: BlogPost) => p.id === id)
+    
+    if (index !== -1) {
+      savedPosts[index] = { 
+        ...savedPosts[index], 
+        ...updates, 
+        updatedAt: new Date().toISOString() 
+      }
+      localStorage.setItem('user-posts', JSON.stringify(savedPosts))
+      return savedPosts[index]
+    }
+    
+    throw new Error('Post not found or you do not have permission to edit it.')
+  },
+
+  // NEW METHOD: Delete Post
+  async deleteHybridPost(id: string): Promise<void> {
+    const savedPosts = JSON.parse(localStorage.getItem('user-posts') || '[]')
+    const initialLength = savedPosts.length
+    
+    // Filter out the post with the given ID
+    const filteredPosts = savedPosts.filter((p: BlogPost) => p.id !== id)
+    
+    if (filteredPosts.length === initialLength) {
+      // If length didn't change, the post wasn't in local storage (maybe it's a system post)
+      throw new Error("Cannot delete this post. It might be a system post or doesn't exist.")
+    }
+    
+    localStorage.setItem('user-posts', JSON.stringify(filteredPosts))
   },
 
   async getUserPosts(userId: string): Promise<BlogPost[]> {

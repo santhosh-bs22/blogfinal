@@ -1,7 +1,8 @@
-import RegisterForm from '../components/auth/RegisterForm'
+import React from 'react'
+import AuthPage from './AuthPage'
 
 const RegisterPage: React.FC = () => {
-  return <RegisterForm />
+  return <AuthPage type="register" />
 }
 
 export default RegisterPage

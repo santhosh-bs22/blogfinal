@@ -1,13 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchBlogPost } from '../api/endpoints'
-import { postsApi } from '../api/posts' // Import postsApi
+import { hybridService } from '../api/hybridService' // Using hybridService for consistency
 import { useBlog } from '../context/BlogContext'
 import type { BlogPost } from '../api/types'
 
 export const useBlogPosts = (category?: string, search?: string) => {
   return useQuery({
     queryKey: ['blogPosts', category, search],
-    queryFn: () => postsApi.getAllPosts(), // Use the new persistence-aware method
+    // Switch to hybridService to fetch posts created by the user
+    queryFn: () => hybridService.getHybridPosts(), 
     select: (data) => {
       let filtered = data
       
@@ -37,21 +37,14 @@ export const useBlogPost = (id: string) => {
   return useQuery({
     queryKey: ['blogPost', id],
     queryFn: async () => {
-      // Check local storage first for individual post view
-      const saved = localStorage.getItem('blog-custom-posts')
-      const customPosts: BlogPost[] = saved ? JSON.parse(saved) : []
-      const localPost = customPosts.find(p => p.id === id)
+      // Use hybridService.getPost to find the post from the correct storage
+      const post = await hybridService.getPost(id)
       
-      if (localPost) {
-        addToRecentlyViewed(id)
-        return localPost
-      }
-
-      const post = await fetchBlogPost(id)
       if (post) {
         addToRecentlyViewed(id)
+        return post
       }
-      return post
+      return null
     },
     enabled: !!id,
   })

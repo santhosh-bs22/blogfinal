@@ -1,51 +1,44 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import MarkdownEditor from '../components/editor/MarkdownEditor'
-import { postsApi } from '../api/posts'
+import { hybridService } from '../api/hybridService' // Changed to hybridService
 import { useAuth } from '../context/AuthContext'
 import { toast } from 'sonner'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import type { BlogPost } from '../api/types'
+import { useQueryClient } from '@tanstack/react-query'
 
 const EditPostPage: React.FC = () => {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  
   const [post, setPost] = useState<BlogPost | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchPost = async () => {
+      if (!id) return
+      
       try {
-        // In a real app, fetch from API
-        // For now, we'll use mock data
-        const mockPost: BlogPost = {
-          id: id || '',
-          title: 'Sample Post',
-          content: '# Sample Content\n\nThis is a sample post.',
-          excerpt: 'Sample excerpt for the post',
-          authorId: user?.id || '',
-          author: {
-            id: user?.id || '',
-            name: user?.name || '',
-            avatar: user?.avatar || '',
-            bio: user?.bio || '',
-            role: user?.role || 'user',
-          },
-          category: 'React',
-          tags: ['react', 'typescript'],
-          publishedAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          readTime: 5,
-          likes: 0,
-          bookmarks: 0,
-          views: 0,
-          status: 'published',
+        const foundPost = await hybridService.getPost(id)
+        
+        if (foundPost) {
+           // Security check: only allow author to edit
+           if (user && foundPost.authorId !== user.id) {
+             toast.error("You don't have permission to edit this post")
+             navigate('/')
+             return
+           }
+           setPost(foundPost)
+        } else {
+          toast.error('Post not found')
+          navigate('/profile')
         }
-        setPost(mockPost)
       } catch (error) {
+        console.error(error)
         toast.error('Failed to load post')
-        navigate('/profile')
       } finally {
         setLoading(false)
       }
@@ -56,29 +49,19 @@ const EditPostPage: React.FC = () => {
     }
   }, [id, user, navigate])
 
-  const handleSubmit = async (data: {
-    title: string
-    content: string
-    excerpt: string
-    tags: string[]
-    category: string
-    featuredImage?: string
-    status: 'draft' | 'published'
-  }) => {
+  const handleSubmit = async (data: any) => {
     if (!user || !id) return
 
     try {
-      await postsApi.updatePost(id, {
+      // Use hybridService to update
+      await hybridService.updateHybridPost(id, {
         ...data,
-        authorId: user.id,
-        author: {
-          id: user.id,
-          name: user.name,
-          avatar: user.avatar,
-          bio: user.bio || '',
-          role: user.role,
-        },
       })
+
+      // Invalidate queries to refresh data
+      await queryClient.invalidateQueries({ queryKey: ['blogPosts'] })
+      await queryClient.invalidateQueries({ queryKey: ['blogPost', id] })
+      
       toast.success('Post updated successfully!')
       navigate(`/blog/${id}`)
     } catch (error) {
@@ -95,16 +78,7 @@ const EditPostPage: React.FC = () => {
     )
   }
 
-  if (!post) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Post not found</h2>
-          <p className="text-muted-foreground">The post you're trying to edit doesn't exist.</p>
-        </div>
-      </div>
-    )
-  }
+  if (!post) return null
 
   return (
     <MarkdownEditor
