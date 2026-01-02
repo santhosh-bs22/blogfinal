@@ -49,7 +49,7 @@ const EnhancedHeader: React.FC = () => {
             <BookOpen className="h-5 w-5 text-primary-foreground" />
           </div>
           <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-            BlogSphere
+            Blogora
           </span>
         </Link>
 

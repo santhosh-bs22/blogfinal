@@ -8,7 +8,7 @@ const Footer: React.FC = () => {
         <div className="flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex items-center gap-2">
             <BookOpen className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">BlogSphere AI</span>
+            <span className="text-xl font-bold">Blogora AI</span>
           </div>
           </div>
       </div>

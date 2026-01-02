@@ -3,24 +3,44 @@ import { apiClient } from './client'
 import type { BlogPost, Comment, Author } from './types'
 
 export const hybridService = {
-  // ... existing code ...
-
   async getHybridPosts(): Promise<BlogPost[]> {
     try {
-      const [localPosts, jsonPosts] = await Promise.allSettled([
-        apiClient.get<BlogPost[]>('posts.json'),
+      // FIX: Fetch both posts and authors simultaneously
+      const [localPosts, localAuthors, jsonPosts] = await Promise.allSettled([
+        apiClient.get<any[]>('posts.json'), // Use any[] initially as raw JSON lacks full author object
+        apiClient.get<Author[]>('authors.json'),
         jsonPlaceholderApi.getPosts(),
       ])
 
       const posts: BlogPost[] = []
 
       // 1. FETCH FROM LOCAL STORAGE
+      // Custom user posts usually have the full author object saved already
       const savedPosts = JSON.parse(localStorage.getItem('user-posts') || '[]')
       posts.push(...savedPosts)
 
-      // 2. Add local JSON file posts
+      // 2. Add local JSON file posts (WITH AUTHOR MAPPING)
       if (localPosts.status === 'fulfilled') {
-        posts.push(...localPosts.value)
+        // Get the authors list if fetch was successful
+        const authors = localAuthors.status === 'fulfilled' ? localAuthors.value : []
+        
+        // Map through posts and attach the corresponding author object
+        const mappedPosts = localPosts.value.map(post => {
+          const author = authors.find(a => a.id === post.authorId) || {
+            id: 'unknown',
+            name: 'Unknown Author',
+            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Unknown',
+            bio: '',
+            role: 'Contributor'
+          } as Author
+
+          return {
+            ...post,
+            author: author // Attach the full author object required by the interface
+          } as BlogPost
+        })
+        
+        posts.push(...mappedPosts)
       }
 
       // 3. Convert and add JSONPlaceholder posts
@@ -169,7 +189,6 @@ export const hybridService = {
     throw new Error('Post not found or you do not have permission to edit it.')
   },
 
-  // NEW METHOD: Delete Post
   async deleteHybridPost(id: string): Promise<void> {
     const savedPosts = JSON.parse(localStorage.getItem('user-posts') || '[]')
     const initialLength = savedPosts.length
