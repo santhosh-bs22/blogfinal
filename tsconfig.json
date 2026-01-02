@@ -20,6 +20,9 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
 
+    /* Add Vite types here */
+    "types": ["vite/client"],
+
     /* Path Aliases */
     "baseUrl": ".",
     "paths": {

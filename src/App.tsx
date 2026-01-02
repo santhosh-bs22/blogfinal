@@ -32,7 +32,8 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <Router>
+        {/* Pass the Vite Base URL as the Router basename */}
+        <Router basename={import.meta.env.BASE_URL}>
           <AuthProvider>
             <BlogProvider>
               <Toaster 
